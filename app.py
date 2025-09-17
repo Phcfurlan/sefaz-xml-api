@@ -179,6 +179,9 @@ async def consultar_manifestacao_destinatario(cnpj_empresa, data_inicio, data_fi
         # Determinar endpoint baseado no estado
         if estado == "SP":
             url = "https://nfe.fazenda.sp.gov.br/ws/nfedistribuicaodfe.asmx"
+        elif estado == "SC":
+            # Santa Catarina
+            url = "https://nfe.fazenda.sc.gov.br/ws/nfedistribuicaodfe.asmx"
         else:
             # Ambiente Nacional (AN)
             url = "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx"
@@ -269,6 +272,9 @@ async def consultar_nfe_por_chave(chave_acesso, cert_path, key_path, estado):
         # Determinar endpoint baseado no estado
         if estado == "SP":
             url = "https://nfe.fazenda.sp.gov.br/ws/nfeconsultaprotocolo4.asmx"
+        elif estado == "SC":
+            # Santa Catarina
+            url = "https://nfe.fazenda.sc.gov.br/ws/nfeconsultaprotocolo4.asmx"
         else:
             # Ambiente Nacional (AN)
             url = "https://www1.nfe.fazenda.gov.br/NFeConsultaProtocolo/NFeConsultaProtocolo.asmx"
