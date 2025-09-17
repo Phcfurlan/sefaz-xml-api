@@ -179,11 +179,8 @@ async def consultar_manifestacao_destinatario(cnpj_empresa, data_inicio, data_fi
         # Determinar endpoint baseado no estado
         if estado == "SP":
             url = "https://nfe.fazenda.sp.gov.br/ws/nfedistribuicaodfe.asmx"
-        elif estado == "SC":
-            # Santa Catarina
-            url = "https://nfe.fazenda.sc.gov.br/ws/nfedistribuicaodfe.asmx"
         else:
-            # Ambiente Nacional (AN)
+            # Ambiente Nacional (AN) - usado por SC e outros estados
             url = "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx"
 
         logger.info(f"🔗 Endpoint: {url}")
@@ -196,6 +193,14 @@ async def consultar_manifestacao_destinatario(cnpj_empresa, data_inicio, data_fi
             logger.error(f"❌ Erro no formato da data: {str(e)}")
             return []
 
+        # Determinar código UF baseado no estado
+        if estado == "SP":
+            codigo_uf = "35"  # São Paulo
+        elif estado == "SC":
+            codigo_uf = "42"  # Santa Catarina
+        else:
+            codigo_uf = "35"  # Default SP
+
         # XML de consulta Manifestação do Destinatário
         xml_consulta = f"""<?xml version="1.0" encoding="UTF-8"?>
 <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:nfe="http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe">
@@ -205,7 +210,7 @@ async def consultar_manifestacao_destinatario(cnpj_empresa, data_inicio, data_fi
             <nfe:nfeDadosMsg>
                 <distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">
                     <tpAmb>1</tpAmb>
-                    <cUFAutor>35</cUFAutor>
+                    <cUFAutor>{codigo_uf}</cUFAutor>
                     <CNPJ>{cnpj_empresa}</CNPJ>
                     <consNSU>
                         <NSU>000000000000000</NSU>
@@ -272,11 +277,8 @@ async def consultar_nfe_por_chave(chave_acesso, cert_path, key_path, estado):
         # Determinar endpoint baseado no estado
         if estado == "SP":
             url = "https://nfe.fazenda.sp.gov.br/ws/nfeconsultaprotocolo4.asmx"
-        elif estado == "SC":
-            # Santa Catarina
-            url = "https://nfe.fazenda.sc.gov.br/ws/nfeconsultaprotocolo4.asmx"
         else:
-            # Ambiente Nacional (AN)
+            # Ambiente Nacional (AN) - usado por SC e outros estados
             url = "https://www1.nfe.fazenda.gov.br/NFeConsultaProtocolo/NFeConsultaProtocolo.asmx"
 
         logger.info(f"🔗 Endpoint Consulta NF-e: {url}")
