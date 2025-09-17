@@ -249,6 +249,9 @@ async def consultar_manifestacao_destinatario(cnpj_empresa, data_inicio, data_fi
         response_xml = response.text
         logger.info(f"📄 Resposta SEFAZ recebida (primeiros 500 chars): {response_xml[:500]}...")
 
+        # LOG: Resposta completa para debug (temporário)
+        logger.info(f"🔍 Resposta SEFAZ COMPLETA: {response_xml}")
+
         # Extrair chaves da resposta
         chaves_encontradas = extrair_chaves_manifestacao(response_xml)
 
@@ -352,48 +355,75 @@ def extrair_chaves_manifestacao(response_xml):
     try:
         root = ET.fromstring(response_xml)
 
-        # Namespace para NF-e
+        # Múltiplos namespaces possíveis
         namespaces = {
             'soap': 'http://www.w3.org/2003/05/soap-envelope',
-            'nfe': 'http://www.portalfiscal.inf.br/nfe'
+            'nfe': 'http://www.portalfiscal.inf.br/nfe',
+            'default': 'http://www.portalfiscal.inf.br/nfe'
         }
 
         chaves = []
 
-        # Buscar elementos docZip que contêm as chaves
-        doc_zips = root.findall('.//nfe:docZip', namespaces)
+        logger.info(f"🔍 DEBUG: Root tag: {root.tag}")
+
+        # LOG: Elementos encontrados para debug
+        for elem in root.iter():
+            if 'docZip' in elem.tag or 'resNFe' in elem.tag or 'chNFe' in elem.tag:
+                logger.info(f"🔍 DEBUG: Elemento encontrado: {elem.tag}")
+
+        # Buscar elementos docZip que contêm as chaves (sem namespace)
+        doc_zips = root.findall('.//docZip') + root.findall('.//nfe:docZip', namespaces)
+
+        logger.info(f"🔍 DEBUG: Encontrados {len(doc_zips)} docZips")
 
         for doc_zip in doc_zips:
             # Decodificar base64 do conteúdo
             try:
                 conteudo_b64 = doc_zip.text
                 if conteudo_b64:
+                    logger.info(f"🔍 DEBUG: Processando docZip de {len(conteudo_b64)} chars")
                     conteudo_bytes = base64.b64decode(conteudo_b64)
 
                     # Descomprimir se necessário
                     try:
                         conteudo_xml = gzip.decompress(conteudo_bytes).decode('utf-8')
+                        logger.info(f"🔍 DEBUG: XML descomprimido: {conteudo_xml[:200]}...")
                     except:
                         conteudo_xml = conteudo_bytes.decode('utf-8')
+                        logger.info(f"🔍 DEBUG: XML sem compressão: {conteudo_xml[:200]}...")
 
                     # Extrair chave do XML interno
                     xml_interno = ET.fromstring(conteudo_xml)
-                    chave_elem = xml_interno.find('.//nfe:chNFe', namespaces)
+                    chave_elem = xml_interno.find('.//chNFe') or xml_interno.find('.//nfe:chNFe', namespaces)
 
                     if chave_elem is not None and chave_elem.text:
                         chaves.append(chave_elem.text)
+                        logger.info(f"🔑 DEBUG: Chave encontrada: {chave_elem.text}")
 
             except Exception as e:
                 logger.warning(f"⚠️ Erro ao processar docZip: {str(e)}")
                 continue
 
-        # Buscar também elementos de resumo de NF-e
-        resumos_nfe = root.findall('.//nfe:resNFe', namespaces)
+        # Buscar também elementos de resumo de NF-e (sem namespace)
+        resumos_nfe = root.findall('.//resNFe') + root.findall('.//nfe:resNFe', namespaces)
+
+        logger.info(f"🔍 DEBUG: Encontrados {len(resumos_nfe)} resumos")
 
         for resumo in resumos_nfe:
             chave_attr = resumo.get('chNFe')
             if chave_attr:
                 chaves.append(chave_attr)
+                logger.info(f"🔑 DEBUG: Chave de resumo: {chave_attr}")
+
+        # Buscar elementos cStat para verificar status da resposta
+        c_stats = root.findall('.//cStat')
+        for c_stat in c_stats:
+            logger.info(f"📊 DEBUG: Status SEFAZ: {c_stat.text}")
+
+        # Buscar elementos xMotivo para mensagens
+        x_motivos = root.findall('.//xMotivo')
+        for x_motivo in x_motivos:
+            logger.info(f"💬 DEBUG: Motivo SEFAZ: {x_motivo.text}")
 
         # Remover duplicatas
         chaves = list(set(chaves))
