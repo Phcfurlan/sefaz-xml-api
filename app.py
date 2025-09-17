@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import base64
 import tempfile
 import os
+import gzip
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import pkcs12
 import logging
@@ -57,141 +58,7 @@ async def consultar_notas_recebidas(
         cnpj_limpo = cnpj_empresa.replace('.', '').replace('/', '').replace('-', '')
         logger.info(f"🔍 CNPJ limpo para consulta: {cnpj_limpo}")
 
-        # SIMULAÇÃO PRIMEIRO - se for W3E em setembro 2025
-        if cnpj_limpo == "58521876000163" and "2025-09" in data_inicio:
-            logger.info("🎯 ✅ SIMULAÇÃO ATIVADA - W3E + setembro 2025")
-            logger.info("📋 Retornando dados simulados sem validar certificado")
-
-            # Dados simulados da nota encontrada
-            nota_simulada = {
-                "chave": "42250914309992000148550010040830921915351968",
-                "numero": "4083092",
-                "dataEmissao": "2025-09-02T22:00:25-03:00",
-                "fornecedorCNPJ": "14309992000148",
-                "fornecedorNome": "WEG DRIVES & CONTROLS - AUTOMACAO L",
-                "valorTotal": 1689.47,
-                "xmlContent": f"""<?xml version="1.0" encoding="UTF-8"?>
-<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe">
-    <NFe>
-        <infNFe Id="NFe42250914309992000148550010040830921915351968">
-            <ide>
-                <cUF>42</cUF>
-                <cNF>19153519</cNF>
-                <natOp>VDA MERC ADQ TERCEIROS C/PIS/COFINS-NORMAL</natOp>
-                <mod>55</mod>
-                <serie>1</serie>
-                <nNF>4083092</nNF>
-                <dhEmi>2025-09-02T22:00:25-03:00</dhEmi>
-                <tpNF>1</tpNF>
-                <idDest>2</idDest>
-                <cMunFG>4205407</cMunFG>
-                <tpImp>1</tpImp>
-                <tpEmis>1</tpEmis>
-                <cDV>8</cDV>
-                <tpAmb>1</tpAmb>
-                <finNFe>1</finNFe>
-                <indFinal>0</indFinal>
-                <indPres>0</indPres>
-            </ide>
-            <emit>
-                <CNPJ>14309992000148</CNPJ>
-                <xNome>WEG DRIVES &amp; CONTROLS - AUTOMACAO L</xNome>
-                <enderEmit>
-                    <xLgr>RUA WEG</xLgr>
-                    <nro>1000</nro>
-                    <xBairro>JARAGA DO SUL</xBairro>
-                    <cMun>4208906</cMun>
-                    <xMun>JARAGA DO SUL</xMun>
-                    <UF>SC</UF>
-                    <CEP>89256000</CEP>
-                </enderEmit>
-                <IE>256520801</IE>
-            </emit>
-            <dest>
-                <CNPJ>58521876000163</CNPJ>
-                <xNome>W3E SOLUCOES LTDA</xNome>
-                <enderDest>
-                    <xLgr>RUA W3E</xLgr>
-                    <nro>456</nro>
-                    <xBairro>CHAPECO</xBairro>
-                    <cMun>4204202</cMun>
-                    <xMun>CHAPECO</xMun>
-                    <UF>SC</UF>
-                    <CEP>89802000</CEP>
-                </enderDest>
-                <IE>6179</IE>
-            </dest>
-            <det nItem="1">
-                <prod>
-                    <cProd>A</cProd>
-                    <xProd>PRODUTO EXEMPLO</xProd>
-                    <NCM>85371000</NCM>
-                    <CFOP>6102</CFOP>
-                    <uCom>UN</uCom>
-                    <qCom>1.0000</qCom>
-                    <vUnCom>1539.38</vUnCom>
-                    <vProd>1539.38</vProd>
-                </prod>
-            </det>
-            <total>
-                <ICMSTot>
-                    <vBC>0.00</vBC>
-                    <vICMS>0.00</vICMS>
-                    <vICMSDeson>0.00</vICMSDeson>
-                    <vFCP>0.00</vFCP>
-                    <vBCST>0.00</vBCST>
-                    <vST>0.00</vST>
-                    <vFCPST>0.00</vFCPST>
-                    <vFCPSTRet>0.00</vFCPSTRet>
-                    <vProd>1539.38</vProd>
-                    <vFrete>0.00</vFrete>
-                    <vSeg>0.00</vSeg>
-                    <vDesc>0.00</vDesc>
-                    <vII>0.00</vII>
-                    <vIPI>0.00</vIPI>
-                    <vIPIDevol>0.00</vIPIDevol>
-                    <vPIS>0.00</vPIS>
-                    <vCOFINS>0.00</vCOFINS>
-                    <vOutro>0.00</vOutro>
-                    <vNF>1689.47</vNF>
-                </ICMSTot>
-            </total>
-        </infNFe>
-    </NFe>
-    <protNFe>
-        <infProt>
-            <tpAmb>1</tpAmb>
-            <verAplic>SP_NFE_PL_008i2</verAplic>
-            <chNFe>42250914309992000148550010040830921915351968</chNFe>
-            <dhRecbto>2025-09-02T22:01:34-03:00</dhRecbto>
-            <nProt>242250340014564</nProt>
-            <digVal>0hCXCRgSVH+9pPHMQTJhI8fY=</digVal>
-            <cStat>100</cStat>
-            <xMotivo>Autorizado o uso da NF-e</xMotivo>
-        </infProt>
-    </protNFe>
-</nfeProc>"""
-            }
-
-            return {
-                "success": True,
-                "notas": [nota_simulada],
-                "totalConsultado": 1,
-                "totalErros": 0,
-                "totalSalvo": 1,
-                "resumo": "Simulação: 1 chave → 1 XML encontrado (W3E + setembro 2025)",
-                "detalhes": [
-                    "✅ Simulação ativada para W3E + setembro 2025",
-                    "🔑 Chave: 42250914309992000148550010040830921915351968",
-                    "🏢 Fornecedor: WEG DRIVES & CONTROLS",
-                    "💰 Valor: R$ 1.689,47",
-                    f"📅 Período: {data_inicio} a {data_fim}",
-                    f"🆔 CNPJ: {cnpj_limpo}"
-                ]
-            }
-
-        # Para casos não simulados, prosseguir com certificado real
-        logger.info("⚠️ Simulação não ativada - processando certificado real")
+        logger.info("🔐 Processando consulta SEFAZ REAL com certificado digital")
 
         # Carregar certificado
         certificado_bytes = base64.b64decode(certificado_base64)
@@ -297,148 +164,276 @@ async def consultar_notas_recebidas(
 
 async def consultar_manifestacao_destinatario(cnpj_empresa, data_inicio, data_fim, cert_path, key_path, estado):
     """
-    Consulta Manifestação do Destinatário para obter lista de chaves
+    Consulta REAL Manifestação do Destinatário para obter lista de chaves
     """
     try:
-        logger.info(f"🎯 Verificando condições de simulação:")
-        logger.info(f"   CNPJ: {cnpj_empresa} == '58521876000163' ? {cnpj_empresa == '58521876000163'}")
-        logger.info(f"   Data: '{data_inicio}' contém '2025-09' ? {'2025-09' in data_inicio}")
+        logger.info(f"🌐 Consultando Manifestação do Destinatário REAL no SEFAZ")
+        logger.info(f"📋 CNPJ: {cnpj_empresa}")
+        logger.info(f"📅 Período: {data_inicio} a {data_fim}")
+        logger.info(f"🏛️ Estado: {estado}")
 
-        # Simular consulta baseada no que você viu no portal
-        # Condições mais específicas para ativar a simulação
-        if cnpj_empresa == "58521876000163" and "2025-09" in data_inicio:
-            logger.info("🎯 ✅ CONDIÇÕES ATENDIDAS - Simulando chave encontrada para W3E em setembro 2025")
-            chaves = ["42250914309992000148550010040830921915351968"]  # Chave da sua imagem
-            logger.info(f"🔑 Retornando chaves: {chaves}")
-            return chaves
+        # Determinar endpoint baseado no estado
+        if estado == "SP":
+            url = "https://nfe.fazenda.sp.gov.br/ws/nfedistribuicaodfe.asmx"
+        else:
+            # Ambiente Nacional (AN)
+            url = "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx"
 
-        logger.info("⚠️ Condições não atendidas - consultando SEFAZ real")
+        logger.info(f"🔗 Endpoint: {url}")
 
-        # Para casos reais, implementar consulta SEFAZ
-        # Por enquanto, retornar lista vazia
+        # Converter datas para formato do SEFAZ
+        try:
+            data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d')
+            data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d')
+        except ValueError as e:
+            logger.error(f"❌ Erro no formato da data: {str(e)}")
+            return []
+
+        # XML de consulta Manifestação do Destinatário
+        xml_consulta = f"""<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:nfe="http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe">
+    <soap:Header/>
+    <soap:Body>
+        <nfe:nfeDistDFeInteresse>
+            <nfe:nfeDadosMsg>
+                <distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">
+                    <tpAmb>1</tpAmb>
+                    <cUFAutor>35</cUFAutor>
+                    <CNPJ>{cnpj_empresa}</CNPJ>
+                    <consNSU>
+                        <NSU>000000000000000</NSU>
+                    </consNSU>
+                </distDFeInt>
+            </nfe:nfeDadosMsg>
+        </nfe:nfeDistDFeInteresse>
+    </soap:Body>
+</soap:Envelope>"""
+
+        headers = {
+            'Content-Type': 'application/soap+xml; charset=utf-8',
+            'SOAPAction': 'http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe/nfeDistDFeInteresse'
+        }
+
+        logger.info("📤 Enviando requisição SOAP para SEFAZ...")
+
+        # Fazer requisição SOAP com certificado digital
+        response = requests.post(
+            url,
+            data=xml_consulta,
+            headers=headers,
+            cert=(cert_path, key_path),
+            verify=True,
+            timeout=30
+        )
+
+        logger.info(f"📊 Status da resposta: {response.status_code}")
+
+        if response.status_code != 200:
+            logger.error(f"❌ Erro HTTP: {response.status_code} - {response.text}")
+            return []
+
+        # Parse da resposta XML
+        response_xml = response.text
+        logger.info(f"📄 Resposta SEFAZ recebida (primeiros 500 chars): {response_xml[:500]}...")
+
+        # Extrair chaves da resposta
+        chaves_encontradas = extrair_chaves_manifestacao(response_xml)
+
+        logger.info(f"🔑 Chaves extraídas da Manifestação: {len(chaves_encontradas)}")
+
+        if chaves_encontradas:
+            for i, chave in enumerate(chaves_encontradas[:5]):  # Log das primeiras 5
+                logger.info(f"   {i+1}. {chave}")
+
+        return chaves_encontradas
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"❌ Erro na requisição SEFAZ: {str(e)}")
         return []
-
     except Exception as e:
         logger.error(f"❌ Erro na consulta Manifestação: {str(e)}")
         return []
 
 async def consultar_nfe_por_chave(chave_acesso, cert_path, key_path, estado):
     """
-    Consulta NF-e individual por chave para baixar XML completo
+    Consulta REAL NF-e individual por chave para baixar XML completo
     """
     try:
-        logger.info(f"📄 Consultando XML para chave: {chave_acesso}")
+        logger.info(f"📄 Consultando XML REAL para chave: {chave_acesso}")
 
-        # Simular XML completo para a chave conhecida da imagem
-        if chave_acesso == "42250914309992000148550010040830921915351968":
-            logger.info("🎯 Retornando XML simulado para chave conhecida")
-            return f"""<?xml version="1.0" encoding="UTF-8"?>
-<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe">
-    <NFe>
-        <infNFe Id="NFe{chave_acesso}">
-            <ide>
-                <cUF>42</cUF>
-                <cNF>19153519</cNF>
-                <natOp>VDA MERC ADQ TERCEIROS C/PIS/COFINS-NORMAL</natOp>
-                <mod>55</mod>
-                <serie>1</serie>
-                <nNF>4083092</nNF>
-                <dhEmi>2025-09-02T22:00:25-03:00</dhEmi>
-                <tpNF>1</tpNF>
-                <idDest>2</idDest>
-                <cMunFG>4205407</cMunFG>
-                <tpImp>1</tpImp>
-                <tpEmis>1</tpEmis>
-                <cDV>8</cDV>
-                <tpAmb>1</tpAmb>
-                <finNFe>1</finNFe>
-                <indFinal>0</indFinal>
-                <indPres>0</indPres>
-            </ide>
-            <emit>
-                <CNPJ>14309992000148</CNPJ>
-                <xNome>WEG DRIVES &amp; CONTROLS - AUTOMACAO L</xNome>
-                <enderEmit>
-                    <xLgr>RUA WEG</xLgr>
-                    <nro>1000</nro>
-                    <xBairro>JARAGA DO SUL</xBairro>
-                    <cMun>4208906</cMun>
-                    <xMun>JARAGA DO SUL</xMun>
-                    <UF>SC</UF>
-                    <CEP>89256000</CEP>
-                </enderEmit>
-                <IE>256520801</IE>
-            </emit>
-            <dest>
-                <CNPJ>58521876000163</CNPJ>
-                <xNome>W3E SOLUCOES LTDA</xNome>
-                <enderDest>
-                    <xLgr>RUA W3E</xLgr>
-                    <nro>456</nro>
-                    <xBairro>CHAPECO</xBairro>
-                    <cMun>4204202</cMun>
-                    <xMun>CHAPECO</xMun>
-                    <UF>SC</UF>
-                    <CEP>89802000</CEP>
-                </enderDest>
-                <IE>6179</IE>
-            </dest>
-            <det nItem="1">
-                <prod>
-                    <cProd>A</cProd>
-                    <xProd>PRODUTO EXEMPLO</xProd>
-                    <NCM>85371000</NCM>
-                    <CFOP>6102</CFOP>
-                    <uCom>UN</uCom>
-                    <qCom>1.0000</qCom>
-                    <vUnCom>1539.38</vUnCom>
-                    <vProd>1539.38</vProd>
-                </prod>
-            </det>
-            <total>
-                <ICMSTot>
-                    <vBC>0.00</vBC>
-                    <vICMS>0.00</vICMS>
-                    <vICMSDeson>0.00</vICMSDeson>
-                    <vFCP>0.00</vFCP>
-                    <vBCST>0.00</vBCST>
-                    <vST>0.00</vST>
-                    <vFCPST>0.00</vFCPST>
-                    <vFCPSTRet>0.00</vFCPSTRet>
-                    <vProd>1539.38</vProd>
-                    <vFrete>0.00</vFrete>
-                    <vSeg>0.00</vSeg>
-                    <vDesc>0.00</vDesc>
-                    <vII>0.00</vII>
-                    <vIPI>0.00</vIPI>
-                    <vIPIDevol>0.00</vIPIDevol>
-                    <vPIS>0.00</vPIS>
-                    <vCOFINS>0.00</vCOFINS>
-                    <vOutro>0.00</vOutro>
-                    <vNF>1689.47</vNF>
-                </ICMSTot>
-            </total>
-        </infNFe>
-    </NFe>
-    <protNFe>
-        <infProt>
-            <tpAmb>1</tpAmb>
-            <verAplic>SP_NFE_PL_008i2</verAplic>
-            <chNFe>{chave_acesso}</chNFe>
-            <dhRecbto>2025-09-02T22:01:34-03:00</dhRecbto>
-            <nProt>242250340014564</nProt>
-            <digVal>0hCXCRgSVH+9pPHMQTJhI8fY=</digVal>
-            <cStat>100</cStat>
-            <xMotivo>Autorizado o uso da NF-e</xMotivo>
-        </infProt>
-    </protNFe>
-</nfeProc>"""
+        # Determinar endpoint baseado no estado
+        if estado == "SP":
+            url = "https://nfe.fazenda.sp.gov.br/ws/nfeconsultaprotocolo4.asmx"
+        else:
+            # Ambiente Nacional (AN)
+            url = "https://www1.nfe.fazenda.gov.br/NFeConsultaProtocolo/NFeConsultaProtocolo.asmx"
 
-        logger.info("⚠️ Chave não reconhecida para simulação")
-        return None  # Para outras chaves por enquanto
+        logger.info(f"🔗 Endpoint Consulta NF-e: {url}")
 
+        # XML de consulta NF-e por chave
+        xml_consulta = f"""<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:nfe="http://www.portalfiscal.inf.br/nfe/wsdl/NFeConsultaProtocolo">
+    <soap:Header/>
+    <soap:Body>
+        <nfe:nfeConsultaNF>
+            <nfe:nfeDadosMsg>
+                <consSitNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+                    <tpAmb>1</tpAmb>
+                    <xServ>CONSULTAR</xServ>
+                    <chNFe>{chave_acesso}</chNFe>
+                </consSitNFe>
+            </nfe:nfeDadosMsg>
+        </nfe:nfeConsultaNF>
+    </soap:Body>
+</soap:Envelope>"""
+
+        headers = {
+            'Content-Type': 'application/soap+xml; charset=utf-8',
+            'SOAPAction': 'http://www.portalfiscal.inf.br/nfe/wsdl/NFeConsultaProtocolo/nfeConsultaNF'
+        }
+
+        logger.info("📤 Enviando requisição SOAP para consulta NF-e...")
+
+        # Fazer requisição SOAP com certificado digital
+        response = requests.post(
+            url,
+            data=xml_consulta,
+            headers=headers,
+            cert=(cert_path, key_path),
+            verify=True,
+            timeout=30
+        )
+
+        logger.info(f"📊 Status da resposta NF-e: {response.status_code}")
+
+        if response.status_code != 200:
+            logger.error(f"❌ Erro HTTP na consulta NF-e: {response.status_code} - {response.text}")
+            return None
+
+        # Parse da resposta XML
+        response_xml = response.text
+        logger.info(f"📄 Resposta NF-e recebida (primeiros 500 chars): {response_xml[:500]}...")
+
+        # Extrair XML da NF-e da resposta
+        xml_nfe = extrair_xml_nfe_da_resposta(response_xml)
+
+        if xml_nfe:
+            logger.info(f"✅ XML da NF-e extraído com sucesso para chave {chave_acesso[:20]}...")
+            return xml_nfe
+        else:
+            logger.warning(f"⚠️ Não foi possível extrair XML da NF-e para chave {chave_acesso[:20]}...")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"❌ Erro na requisição consulta NF-e: {str(e)}")
+        return None
     except Exception as e:
         logger.error(f"❌ Erro na consulta NF-e: {str(e)}")
+        return None
+
+def extrair_chaves_manifestacao(response_xml):
+    """
+    Extrai chaves de acesso da resposta da Manifestação do Destinatário
+    """
+    try:
+        root = ET.fromstring(response_xml)
+
+        # Namespace para NF-e
+        namespaces = {
+            'soap': 'http://www.w3.org/2003/05/soap-envelope',
+            'nfe': 'http://www.portalfiscal.inf.br/nfe'
+        }
+
+        chaves = []
+
+        # Buscar elementos docZip que contêm as chaves
+        doc_zips = root.findall('.//nfe:docZip', namespaces)
+
+        for doc_zip in doc_zips:
+            # Decodificar base64 do conteúdo
+            try:
+                conteudo_b64 = doc_zip.text
+                if conteudo_b64:
+                    conteudo_bytes = base64.b64decode(conteudo_b64)
+
+                    # Descomprimir se necessário
+                    try:
+                        conteudo_xml = gzip.decompress(conteudo_bytes).decode('utf-8')
+                    except:
+                        conteudo_xml = conteudo_bytes.decode('utf-8')
+
+                    # Extrair chave do XML interno
+                    xml_interno = ET.fromstring(conteudo_xml)
+                    chave_elem = xml_interno.find('.//nfe:chNFe', namespaces)
+
+                    if chave_elem is not None and chave_elem.text:
+                        chaves.append(chave_elem.text)
+
+            except Exception as e:
+                logger.warning(f"⚠️ Erro ao processar docZip: {str(e)}")
+                continue
+
+        # Buscar também elementos de resumo de NF-e
+        resumos_nfe = root.findall('.//nfe:resNFe', namespaces)
+
+        for resumo in resumos_nfe:
+            chave_attr = resumo.get('chNFe')
+            if chave_attr:
+                chaves.append(chave_attr)
+
+        # Remover duplicatas
+        chaves = list(set(chaves))
+
+        logger.info(f"🔍 Processadas {len(doc_zips)} docZips e {len(resumos_nfe)} resumos")
+        logger.info(f"🔑 Total de chaves únicas encontradas: {len(chaves)}")
+
+        return chaves
+
+    except Exception as e:
+        logger.error(f"❌ Erro ao extrair chaves da manifestação: {str(e)}")
+        return []
+
+def extrair_xml_nfe_da_resposta(response_xml):
+    """
+    Extrai o XML da NF-e da resposta da consulta SEFAZ
+    """
+    try:
+        root = ET.fromstring(response_xml)
+
+        # Namespace para NF-e
+        namespaces = {
+            'soap': 'http://www.w3.org/2003/05/soap-envelope',
+            'nfe': 'http://www.portalfiscal.inf.br/nfe'
+        }
+
+        # Buscar o elemento nfeProc ou NFe
+        nfe_proc = root.find('.//nfe:nfeProc', namespaces)
+        if nfe_proc is not None:
+            return ET.tostring(nfe_proc, encoding='unicode')
+
+        # Se não encontrar nfeProc, buscar NFe
+        nfe = root.find('.//nfe:NFe', namespaces)
+        if nfe is not None:
+            return ET.tostring(nfe, encoding='unicode')
+
+        # Verificar se há protocolo de autorização
+        prot_nfe = root.find('.//nfe:protNFe', namespaces)
+        if prot_nfe is not None:
+            # Construir nfeProc com NFe + protocolo
+            nfe_elem = root.find('.//nfe:NFe', namespaces)
+            if nfe_elem is not None:
+                # Criar elemento nfeProc
+                nfe_proc_xml = f'''<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe">
+{ET.tostring(nfe_elem, encoding='unicode')}
+{ET.tostring(prot_nfe, encoding='unicode')}
+</nfeProc>'''
+                return nfe_proc_xml
+
+        logger.warning("⚠️ Não foi possível localizar XML da NF-e na resposta")
+        return None
+
+    except Exception as e:
+        logger.error(f"❌ Erro ao extrair XML da NF-e: {str(e)}")
         return None
 
 def extrair_info_nfe(xml_content, chave):
