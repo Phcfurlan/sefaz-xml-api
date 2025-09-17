@@ -104,8 +104,20 @@ async def consultar_notas_recebidas(
                     "totalConsultado": 0,
                     "totalErros": 0,
                     "totalSalvo": 0,
-                    "resumo": "Nenhuma nota fiscal encontrada na Manifestação do Destinatário",
-                    "detalhes": [f"Período consultado: {data_inicio} a {data_fim}", f"CNPJ consultado: {cnpj_limpo}"]
+                    "resumo": "⚠️ Status SEFAZ 137: Nenhum documento localizado para manifestação",
+                    "detalhes": [
+                        f"Período consultado: {data_inicio} a {data_fim}",
+                        f"CNPJ consultado: {cnpj_limpo}",
+                        "POSSÍVEIS CAUSAS:",
+                        "1. As notas já foram manifestadas anteriormente",
+                        "2. O período de consulta está incorreto",
+                        "3. As notas são de um CNPJ diferente",
+                        "4. Realmente não há notas pendentes",
+                        "SUGESTÕES:",
+                        "• Verificar portal SEFAZ manualmente",
+                        "• Tentar período maior (ex: últimos 30 dias)",
+                        "• Verificar se o CNPJ está correto"
+                    ]
                 }
 
             logger.info(f"✅ Encontradas {len(chaves_encontradas)} chaves na Manifestação")
@@ -213,7 +225,7 @@ async def consultar_manifestacao_destinatario(cnpj_empresa, data_inicio, data_fi
                     <cUFAutor>{codigo_uf}</cUFAutor>
                     <CNPJ>{cnpj_empresa}</CNPJ>
                     <consNSU>
-                        <NSU>000000000000000</NSU>
+                        <NSU>000000000000050</NSU>
                     </consNSU>
                 </distDFeInt>
             </nfe:nfeDadosMsg>
@@ -251,6 +263,10 @@ async def consultar_manifestacao_destinatario(cnpj_empresa, data_inicio, data_fi
 
         # LOG: Resposta completa para debug (temporário)
         logger.info(f"🔍 Resposta SEFAZ COMPLETA: {response_xml}")
+
+        # Interpretar status SEFAZ
+        status_info = interpretar_status_sefaz(response_xml)
+        logger.info(f"📊 Status SEFAZ interpretado: {status_info}")
 
         # Extrair chaves da resposta
         chaves_encontradas = extrair_chaves_manifestacao(response_xml)
@@ -347,6 +363,43 @@ async def consultar_nfe_por_chave(chave_acesso, cert_path, key_path, estado):
     except Exception as e:
         logger.error(f"❌ Erro na consulta NF-e: {str(e)}")
         return None
+
+def interpretar_status_sefaz(response_xml):
+    """Interpreta códigos de status da SEFAZ"""
+    try:
+        root = ET.fromstring(response_xml)
+
+        # Procurar por cStat e xMotivo
+        c_stat = None
+        x_motivo = None
+
+        for elem in root.iter():
+            if 'cStat' in elem.tag:
+                c_stat = elem.text
+            elif 'xMotivo' in elem.tag:
+                x_motivo = elem.text
+
+        # Interpretações dos códigos SEFAZ
+        interpretacoes = {
+            '137': 'Nenhum documento localizado - Possíveis causas: notas já manifestadas, período incorreto, ou realmente não há notas pendentes',
+            '138': 'Documento não encontrado',
+            '139': 'CNPJ não autorizado para consulta',
+            '140': 'CPF/CNPJ remetente não autorizado',
+            '656': 'Consulta sendo processada. Aguarde.',
+            '657': 'Existe DFe disponível'
+        }
+
+        interpretacao = interpretacoes.get(c_stat, f'Código {c_stat} não catalogado')
+
+        return {
+            'cStat': c_stat,
+            'xMotivo': x_motivo,
+            'interpretacao': interpretacao
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Erro ao interpretar status SEFAZ: {str(e)}")
+        return {'cStat': 'erro', 'xMotivo': 'Erro no parsing', 'interpretacao': 'Erro ao processar resposta'}
 
 def extrair_chaves_manifestacao(response_xml):
     """
